@@ -15,7 +15,6 @@ const Helpers = use('Helpers')
 class BackupCommand extends Command {
     static get signature() {
         return 'backup:start'
-        //return 'backup:start { --s3 : Upload backup to s3 space. }'
     }
 
     static get description() {
