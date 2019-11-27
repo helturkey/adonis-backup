@@ -15,7 +15,7 @@ const archiver = require('archiver-promise')
 
 const Helpers = use('Helpers')
 const Config = use('Config')
-const backupOptions = Config.get('backup')
+const backup = Config.get('backup')
 
 const readdir = promisify(fs.readdir)
 const stat = promisify(fs.stat)
@@ -29,24 +29,24 @@ async function runBackup() {
     const resources = await walk(_resources)
     console.log('Hi, I have finished walking, now I am compressing...')
     await compress(fileName, resources)
-    if (backupOptions.destination.disks.includes('s3')) {
+    if (backup.destination.disks.includes('s3')) {
         await s3(fileName)
     }
-    if(backupOptions.method === 'tar')
+    if(backup.method === 'tar')
         await unlink(Helpers.appRoot('tar'))
-    else if(backupOptions.method === 'zip')
+    else if(backup.method === 'zip')
         await unlink(Helpers.appRoot('zip'))
 }
 
 async function backupFile() {
     const now = new Date().toISOString().slice(0, 19)
 
-    let extension = backupOptions.method
-    if (backupOptions.gzip === true && extension === 'tar') {
+    let extension = backup.method
+    if (backup.gzip === true && extension === 'tar') {
         extension = extension + '.gz'
     }
 
-    return backupOptions.destination.filename_prefix + now + '.' + extension
+    return backup.destination.filename_prefix + now + '.' + extension
 }
 
 async function walk(_resources) {
@@ -68,10 +68,10 @@ async function walk(_resources) {
 
 async function compress(fileName, resources) {
 
-    const archive = archiver(backupOptions.method, {
-        gzip: backupOptions.gzip,
-        zlib: { level: backupOptions.level },
-        statConcurrency: backupOptions.concurrency
+    const archive = archiver(backup.method, {
+        gzip: backup.gzip,
+        zlib: { level: backup.level },
+        statConcurrency: backup.concurrency
     })
 
     const output = fs.createWriteStream(Helpers.tmpPath('backup/') + fileName)
@@ -113,7 +113,7 @@ async function s3(basename) {
     const Drive = use('Drive')
     try {
         console.log('backup upload to drive began.')
-        let done = await Drive.disk('s3').put(backupOptions.driverPath + basename, Helpers.tmpPath('backup/') + basename)
+        let done = await Drive.disk('s3').put(backup.driverPath + basename, Helpers.tmpPath('backup/') + basename)
         if (done) {
             console.log('backup has been uploaded sucessfully!')
         } else {
