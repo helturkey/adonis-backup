@@ -38,6 +38,34 @@ async function runBackup() {
         await unlink(Helpers.appRoot('zip'))
 }
 
+async function backupFile() {
+    const now = new Date().toISOString().slice(0, 19)
+
+    let extension = backupOptions.method
+    if (backupOptions.gzip === true && extension === 'tar') {
+        extension = extension + '.gz'
+    }
+
+    return backupOptions.destination.filename_prefix + now + '.' + extension
+}
+
+async function walk(_resources) {
+    let files = await readdir(_resources)
+    if (files.length === 0) {
+        return _resources
+    }
+    files = await Promise.all(files.map(async file => {
+        const filePath = path.join(_resources, file)
+        const stats = await stat(filePath)
+        if (stats.isDirectory()) {
+            return await walk(filePath)
+        } else if (stats.isFile()) {
+            return filePath
+        }
+    }))
+    return files.reduce((all, folderContents) => all.concat(folderContents), [])
+}
+
 async function compress(fileName, resources) {
 
     const archive = archiver(backupOptions.method, {
@@ -81,36 +109,6 @@ async function compress(fileName, resources) {
     await archive.finalize()
 }
 
-async function backupFile() {
-    const today = new Date()
-    const now = today.getFullYear() + '-' + ("0" + (today.getMonth() + 1)).slice(-2) + '-' + ("0" + today.getDate()).slice(-2) + 'T' + ("0" + today.getHours()).slice(-2) +
-        '-' + ("0" + today.getMinutes()).slice(-2) + '-' + today.getSeconds()
-
-    let extension = backupOptions.method
-    if (backupOptions.gzip === true && extension === 'tar') {
-        extension = extension + '.gz'
-    }
-
-    return backupOptions.destination.filename_prefix + now + '.' + extension
-}
-
-async function walk(_resources) {
-    let files = await readdir(_resources)
-    if (files.length === 0) {
-        return _resources
-    }
-    files = await Promise.all(files.map(async file => {
-        const filePath = path.join(_resources, file)
-        const stats = await stat(filePath)
-        if (stats.isDirectory()) {
-            return await walk(filePath)
-        } else if (stats.isFile()) {
-            return filePath
-        }
-    }))
-    return files.reduce((all, folderContents) => all.concat(folderContents), [])
-}
-
 async function s3(basename) {
     const Drive = use('Drive')
     try {
@@ -127,7 +125,7 @@ async function s3(basename) {
 }
 
 function humanSize(bytes) {
-    var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+    var sizes = ['Bytes', 'KB', 'MB', 'GB']
     if (bytes == 0) return '0 Byte'
     var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)))
     return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i]
