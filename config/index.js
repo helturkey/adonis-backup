@@ -9,7 +9,8 @@
 */
 
 const numCPUs = require('os').cpus().length
-const Helpers = use('Helpers')
+//const Helpers = use('Helpers')
+//it is for future use (include and exclude)
 
 module.exports = {
     /*
@@ -62,7 +63,7 @@ module.exports = {
 | filename_prefix works as a prefix for backup file.
 | must be a string.
 | disks only available right now is local and aws3 or digitalocean spaces, to use it just add driver name
-| for example disks: ['local', 's3]
+| for example disks: ['local', 's3']
 */
     destination: {
         filename_prefix: 'backup_',
@@ -88,8 +89,8 @@ module.exports = {
 */
 
     exclude: [
-        Helpers.appRoot('tmp'),
-        Helpers.appRoot('node_modules'),
+        // Helpers.appRoot('tmp'),
+        // Helpers.appRoot('node_modules'),
     ],
 
     /*
@@ -101,6 +102,6 @@ module.exports = {
 */
 
     include: [
-        //Helpers.appRoot('public/')
+        //Helpers.appRoot()
     ]
 }
