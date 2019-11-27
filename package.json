@@ -1,0 +1,31 @@
+{
+  "name": "adonis-backup",
+  "version": "1.0.3",
+  "description": "adonis backup package",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@adonisjs/ace": "^5.0.1",
+    "@adonisjs/fold": "^4.0.7",
+    "@adonisjs/framework": "^5.0.6",
+    "japa": "^1.0.6",
+    "japa-cli": "^1.0.1"
+  },
+  "dependencies": {
+    "archiver-promise": "^1.0.0"
+  },
+  "keywords": [
+    "adonisjs",
+    "backup",
+    "adonis",
+    "files"
+  ],
+  "author": "Hussein Elturkey",
+  "license": "ISC",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/helturkey/adonis-backup.git"
+  }
+}
