@@ -1,7 +1,7 @@
-#adonis-backup
+# adonis-backup
 by: Hussein Elturkey
 
-##installing
+## installing
 
 it is recommended to install it using:
 
