@@ -9,8 +9,7 @@
 */
 
 const numCPUs = require('os').cpus().length
-//const Helpers = use('Helpers')
-//it is for future use (include and exclude)
+const Helpers = use('Helpers')
 
 module.exports = {
     /*
@@ -63,7 +62,7 @@ module.exports = {
 | filename_prefix works as a prefix for backup file.
 | must be a string.
 | disks only available right now is local and aws3 or digitalocean spaces, to use it just add driver name
-| for example disks: ['local', 's3']
+| for example disks: ['local', 's3]
 */
     destination: {
         filename_prefix: 'backup_',
@@ -78,7 +77,7 @@ module.exports = {
 |
 */
 
-    driverPath: 'backupDirectory/',
+    driverPath: 'backupDir/',
 
     /*
 |--------------------------------------------------------------------------
@@ -89,8 +88,8 @@ module.exports = {
 */
 
     exclude: [
-        // Helpers.appRoot('tmp'),
-        // Helpers.appRoot('node_modules'),
+        Helpers.appRoot('tmp'),
+        Helpers.appRoot('node_modules'),
     ],
 
     /*
@@ -98,10 +97,16 @@ module.exports = {
 | These directories and files will be included in the backup.
 |--------------------------------------------------------------------------
 | Directories used by the backup process will automatically be included.
-|
+| public directory is the default, but you can backup the entire app using Helpers.appRoot() only.
+| you can also use multiple directories like, include: [
+|        Helpers.appRoot('public/'),
+|        Helpers.appRoot('app/'),
+|    ]
+| Note: it is a good practice to only backup public directory, cause in case of restoring backup,
+| it will replace your existence files.
 */
 
     include: [
-        //Helpers.appRoot()
+        Helpers.appRoot('public/'),
     ]
 }
