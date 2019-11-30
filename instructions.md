@@ -1,6 +1,6 @@
 # adonis-backup
 by: Hussein Elturkey
-## Registering provider
+## Registering provider:
 
 Make sure to register the provider and make all of the following necessary changes inside the `start/app.js` file!
 
@@ -15,18 +15,53 @@ const aceProviders = [
 
 ```
 
-## Config
+# Config:
 
 Please update configuration before use. The configuration file is `config/backup.js`.
 
-## use
+# use:
 
 ```
 adonis backup:start
 ```
+## cloud only backup:
+
+```
+adonis backup:start --cloudOnly
+```
+## local only backup:
+
+```
+adonis backup:start --localOnly
+```
+
+## restore backup: (not working yet, will be next update.)
+
+```
+adonis backup:start --restore
+```
 
 for using digitalocean spaces or aws, just add s3 drive in config/drive.js
 
-# location
+## help and flags:
+```
+adonis backup:start --hlep
+```
 
-backup will be store in tmp/backup directory
+## Note: 
+for using digitalocean spaces or aws, just add s3 drive in config/drive.js.
+then add s3 in config/backup.js
+
+```
+*/
+for example disks: ['local', 's3]
+*/
+    destination: {
+        filename_prefix: 'backup_',
+        disks: ['local']
+    },
+```
+
+# backup location:
+
+backup will be store in tmp/backup directory.
