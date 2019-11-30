@@ -46,7 +46,9 @@ async function backupFactory(options) {
             log(Farbe.red('it is not a good practice to walk in not-app-root directories.'))
             break
         }
-        resources.push(...await walk(d))
+        walk(d, function (paths) {
+            resources.push(paths)
+        })
     }
 
     if (!resources.length) {
@@ -83,33 +85,41 @@ async function backupFileName() {
     return backup.destination.filename_prefix + now + '.' + extension
 }
 
-async function walk(_resources) {
-    // exclude certain directories from backup.
-    if (backup.exclude.includes(_resources)) {
-        return []
-    }
-
-    let files = await readdir(_resources)
-
-    // return path only in case of empty directory.
-    if (files.length === 0) {
-        return _resources
-    }
-
-    files = await Promise.all(files.map(async file => {
-        const filePath = path.join(_resources, file)
-        const stats = await stat(filePath)
-        if (stats.isDirectory()) {
-            return await walk(filePath)
-        } else if (stats.isFile()) {
-            return filePath
-        }
-    }))
-
-    let result = files.reduce((all, folderContents) => all.concat(folderContents), [])
-    // remove empty values from result array.
-    return result.filter(Boolean)
+function walk(dir, callback) {
+    fs.readdirSync(dir).forEach( f => {
+        let Paths = path.join(dir, f)
+        let isDirectory = fs.statSync(Paths).isDirectory()
+        isDirectory ? walk(Paths, callback) : callback(Paths)
+    })
 }
+
+// async function walk(_resources) {
+//     // exclude certain directories from backup.
+//     if (backup.exclude.includes(_resources)) {
+//         return []
+//     }
+//
+//     let files = await readdir(_resources)
+//
+//     // return path only in case of empty directory.
+//     if (files.length === 0) {
+//         return _resources
+//     }
+//
+//     files = await Promise.all(files.map(async file => {
+//         const filePath = path.join(_resources, file)
+//         const stats = fs.statSync(filePath)
+//         if (stats.isDirectory()) {
+//             return await walk(filePath)
+//         } else if (stats.isFile()) {
+//             return filePath
+//         }
+//     }))
+//
+//     let result = files.reduce((all, folderContents) => all.concat(folderContents), [])
+//     // remove empty values from result array.
+//     return result.filter(Boolean)
+// }
 
 async function compress(fileName, resources) {
 
