@@ -107,6 +107,6 @@ module.exports = {
 */
 
     include: [
-        Helpers.appRoot('public/'),
+        Helpers.appRoot('public'),
     ]
 }
