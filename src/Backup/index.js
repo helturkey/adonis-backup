@@ -86,6 +86,18 @@ async function backupFileName() {
 }
 
 function walk(dir, callback) {
+    //     // exclude certain directories from backup.
+    if (backup.exclude.includes(dir)) {
+        return
+    }
+
+    let files = fs.readdirSync(dir)
+
+    // return path only in case of empty directory.
+    if (files.length === 0) {
+        callback(dir)
+    }
+    
     fs.readdirSync(dir).forEach( f => {
         let Paths = path.join(dir, f)
         let isDirectory = fs.statSync(Paths).isDirectory()
