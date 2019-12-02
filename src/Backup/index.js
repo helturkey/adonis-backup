@@ -99,9 +99,9 @@ function walk(dir, callback) {
     }
 
     files.forEach( f => {
-        let Paths = path.join(dir, f)
-        let isDirectory = fs.statSync(Paths).isDirectory()
-        isDirectory ? walk(Paths, callback) : callback(Paths)
+        let _path = path.join(dir, f)
+        let isDirectory = fs.statSync(_path).isDirectory()
+        isDirectory ? walk(_path, callback) : callback(_path)
     })
 }
 
