@@ -97,8 +97,8 @@ function walk(dir, callback) {
     if (files.length === 0) {
         callback(dir)
     }
-    
-    fs.readdirSync(dir).forEach( f => {
+
+    files.forEach( f => {
         let Paths = path.join(dir, f)
         let isDirectory = fs.statSync(Paths).isDirectory()
         isDirectory ? walk(Paths, callback) : callback(Paths)
