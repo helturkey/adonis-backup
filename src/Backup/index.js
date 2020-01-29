@@ -8,14 +8,11 @@
 |
 */
 
-const fs = require('fs')
-const path = require('path')
-const { promisify } = require('util')
+const { createReadStream, createWriteStream } = require('fs')
+const { stat, readdir, unlink } = require('fs').promises
+const { resolve } = require('path')
 const archiver = require('archiver-promise')
 const Farbe = require('kleur')
-const readdir = promisify(fs.readdir)
-const stat = promisify(fs.stat)
-const unlink = promisify(fs.unlink)
 
 const Helpers = use('Helpers')
 const Config = use('Config')
@@ -25,8 +22,8 @@ const log = console.log
 
 async function backupFactory(options) {
 
-    if(options.cloudOnly && options.localOnly){
-     log(Farbe.red('seriously!, it is not an acceptable argument!'))
+    if (options.cloudOnly && options.localOnly) {
+        log(Farbe.red('seriously!, it is not an acceptable argument!'))
         return
     }
 
@@ -39,17 +36,23 @@ async function backupFactory(options) {
 
     log(Farbe.green('GatherMan is walking your directories...'))
 
-    let resources = []
+    const entries = []
 
-    for (let d of backup.include) {
-        if (!d.includes(Helpers.appRoot())) {
+    // in case of duplicated dirs!
+    const directories = [...new Set(backup.include)]
+
+    for (let directory of directories) {
+        if (!directory.includes(Helpers.appRoot())) {
             log(Farbe.red('it is not a good practice to walk in not-app-root directories.'))
             break
         }
-        walk(d, function (paths) {
-            resources.push(paths)
-        })
+        const paths = await walk(directory)
+        // resources.push(...paths) causes RangeError: Maximum call stack size exceeded in case of a lot of dirs and files.
+        entries.push(paths)
     }
+
+    // flat arrays and remove empty or undefined values.
+    const resources = entries.flat().filter(Boolean)
 
     if (!resources.length) {
         log(Farbe.red('you can not backup nothing, can you!'))
@@ -85,103 +88,80 @@ async function backupFileName() {
     return backup.destination.filename_prefix + now + '.' + extension
 }
 
-function walk(dir, callback) {
-    //     // exclude certain directories from backup.
+async function walk(dir) {
+    // exclude certain directories from backup.
     if (backup.exclude.includes(dir)) {
         return
     }
 
-    let files = fs.readdirSync(dir)
+    let entries = await readdir(dir)
 
     // return path only in case of empty directory.
-    if (files.length === 0) {
-        callback(dir)
+    if (entries.length === 0) {
+        return dir
     }
 
-    files.forEach( f => {
-        let _path = path.join(dir, f)
-        let isDirectory = fs.statSync(_path).isDirectory()
-        isDirectory ? walk(_path, callback) : callback(_path)
-    })
+    const files = await Promise.all(entries.map(async entry => {
+        const path = resolve(dir, entry)
+        const stats = await stat(path)
+        if (stats.isDirectory()) {
+            return await walk(path)
+        } else {
+            return path
+        }
+    }))
+    return files.flat()
 }
-
-// async function walk(_resources) {
-//     // exclude certain directories from backup.
-//     if (backup.exclude.includes(_resources)) {
-//         return []
-//     }
-//
-//     let files = await readdir(_resources)
-//
-//     // return path only in case of empty directory.
-//     if (files.length === 0) {
-//         return _resources
-//     }
-//
-//     files = await Promise.all(files.map(async file => {
-//         const filePath = path.join(_resources, file)
-//         const stats = fs.statSync(filePath)
-//         if (stats.isDirectory()) {
-//             return await walk(filePath)
-//         } else if (stats.isFile()) {
-//             return filePath
-//         }
-//     }))
-//
-//     let result = files.reduce((all, folderContents) => all.concat(folderContents), [])
-//     // remove empty values from result array.
-//     return result.filter(Boolean)
-// }
 
 async function compress(fileName, resources) {
 
     const archive = archiver(backup.method, {
         gzip: backup.gzip,
-        zlib: { level: backup.level },
+        zlib: {
+            level: backup.level
+        },
         statConcurrency: backup.concurrency
     })
 
-    const output = fs.createWriteStream(Helpers.tmpPath('backup/') + fileName)
+    const outputFile = createWriteStream(Helpers.tmpPath('backup/') + fileName)
 
-    output.on('close', () => {
+    outputFile.on('close', () => {
         log(Farbe.cyan("file size is: " + humanSize(archive.pointer())))
         log(Farbe.cyan('congratulation, compressing has been done!'))
     })
 
-    output.on('end', function() {
-        log(Farbe.red('Data has been drained'))
+    outputFile.on('end', () => {
+        log(Farbe.red('data has been drained'))
     })
 
-    archive.on('warning', function(err) {
-        if (err.code === 'ENOENT') {
-            throw err
-        } else {
-            throw err
-        }
+    archive.on('warning', (warn) => {
+        log(Farbe.red(warn))
     })
 
-    archive.on('error', function(err) {
-        throw err
+    archive.on('error', (err) => {
+        log(Farbe.red(err))
     })
 
-    archive.pipe(output)
+    archive.pipe(outputFile)
 
-    for (let _file of resources) {
-        const stats = await stat(_file)
+    for (let resource of resources) {
+        const stats = await stat(resource)
         if (stats.isDirectory()) {
-            archive.directory(_file)
-        } else if (stats.isFile()) {
-            archive.append(fs.createReadStream(_file), { name: _file })
+            archive.directory(resource)
+        } else {
+            archive.append(createReadStream(resource), {
+                name: resource
+            })
         }
     }
     await archive.finalize()
 }
 
-async function s3(basename) {
+async function s3(baseName) {
     const Drive = use('Drive')
     try {
         log(Farbe.cyan('backup upload to drive began.'))
-        let done = await Drive.disk('s3').put(backup.driverPath + basename, Helpers.tmpPath('backup/') + basename)
+        const done = await Drive.disk('s3').put(backup.driverPath + baseName, Helpers.tmpPath('backup/') + baseName)
         if (done) {
             log(Farbe.green('backup has been uploaded successfully!'))
         } else {
@@ -199,4 +179,6 @@ function humanSize(bytes) {
     if (i === 0) return `${bytes} ${sizes[i]})`
     return `${(bytes / (1024 ** i)).toFixed(1)} ${sizes[i]}`
 }
-module.exports = { backupFactory }
+module.exports = {
+    backupFactory
+}
